@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-lang-key="headerTitle">Kismet Playground - Word Puzzle Designer</title>
+  <!-- Google Fonts for modern typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Fabric.js for canvas manipulation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+  <!-- jsPDF for exporting PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Global Styles */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #ece9e6, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+      padding: 20px;
+    }
+    header {
+      width: 100%;
+      max-width: 1200px;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #007bff;
+    }
+    /* Language select styling */
+    #language-select {
+      padding: 6px 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+    }
+    /* Control Panel */
+    #control-panel {
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 20px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 20px;
+      transition: max-height 0.5s ease, padding 0.5s ease;
+      overflow: hidden;
+      max-height: 600px;
+    }
+    #control-panel.collapsed {
+      max-height: 0;
+      padding: 0 20px;
+      margin-bottom: 0;
+    }
+    /* Controls Layout */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .controls input[type="text"],
+    .controls select,
+    .controls input[type="number"],
+    .controls input[type="color"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .controls input[type="text"] {
+      width: 400px;
+    }
+    .controls input:focus,
+    .controls select:focus,
+    .controls input[type="number"]:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0,123,255,0.5);
+      outline: none;
+    }
+    .controls button {
+      padding: 10px 20px;
+      border: none;
+      background: linear-gradient(45deg, #007bff, #0056b3);
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    .controls button:hover {
+      transform: scale(1.03);
+    }
+    .controls .secondary-btn {
+      background: linear-gradient(45deg, #007bff, #0056b3);
+    }
+    .controls .secondary-btn:hover {
+      transform: scale(1.03);
+    }
+    /* Text Alignment Control */
+    .text-align-control {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    /* Directions */
+    .directions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    .directions span {
+      font-weight: bold;
+      color: #555;
+    }
+    .directions label {
+      font-size: 14px;
+    }
+    /* Toggle Switch for Answers */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+      vertical-align: middle;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0;
+      right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: 0.4s;
+      border-radius: 30px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #007bff;
+    }
+    input:checked + .slider:before {
+      transform: translateX(30px);
+    }
+    /* Canvas container */
+    #canvas-container {
+      background: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: auto;
+      width: 800px;
+      max-width: 100%;
+    }
+    #word-list { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 data-lang-key="headerTitle">Kismet Playground - Word Puzzle Designer</h1>
+    <!-- Language Toggle Select -->
+    <select id="language-select" onchange="updateLanguage(this.value)">
+      <option value="eng" selected>ENG</option>
+      <option value="kor">KOR</option>
+    </select>
+    <div>
+      <button id="toggle-panel" onclick="togglePanel()" data-lang-key="toggleControls">Toggle Controls</button>
+      <button class="secondary-btn" onclick="clearCanvas()" data-lang-key="clearCanvas">Clear Canvas</button>
+      <button class="secondary-btn" onclick="undoAction()" data-lang-key="undo">Undo</button>
+    </div>
+  </header>
+
+  <div id="control-panel">
+    <div class="controls">
+      <input type="text" id="word-input" placeholder="Enter words (comma separated)" data-lang-placeholder="placeholderWords" title="Enter words separated by commas" />
+      <button onclick="generatePuzzle()" data-lang-key="generatePuzzle">Generate Puzzle</button>
+      <button onclick="addText()" data-lang-key="addText">Add Text</button>
+      <label for="color-picker" data-lang-key="textColor">Text Color:</label>
+      <input type="color" id="color-picker" title="Change Color" onchange="changeColor()" />
+      <label for="font-selector" data-lang-key="font">Font:</label>
+      <select id="font-selector" title="Select Font" onchange="changeFont()">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+      <label for="font-size-input" data-lang-key="fontSize">Font Size:</label>
+      <input type="number" id="font-size-input" value="20" min="8" max="72" title="Set Font Size" onchange="changeFontSize()" />
+      <!-- Text Alignment Control -->
+      <div class="text-align-control">
+        <label for="text-align-selector" data-lang-key="textAlignment">Text Alignment:</label>
+        <select id="text-align-selector" title="Select Text Alignment" onchange="alignSelectedText()">
+          <option value="center" selected>Center</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+      <button onclick="printPreview()" data-lang-key="printPreview">Print Preview</button>
+      <button onclick="exportAsPDF()" data-lang-key="exportPDF">Export as PDF</button>
+      <!-- Toggle Switch for Answers -->
+      <label for="answers-toggle" style="font-size:16px;" data-lang-key="showAnswers">Show Answers:</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="answers-toggle" onchange="toggleAnswers()">
+        <span class="slider"></span>
+      </label>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <span data-lang-key="letterCase">Letter Case:</span>
+        <label><input type="radio" name="letter-case" value="lower" checked onchange="setLetterCase(this.value)"> <span data-lang-key="lower">Lower</span></label>
+        <label><input type="radio" name="letter-case" value="upper" onchange="setLetterCase(this.value)"> <span data-lang-key="upper">Upper</span></label>
+      </div>
+      <label for="grid-color-picker" data-lang-key="gridColor">Grid Color:</label>
+      <input type="color" id="grid-color-picker" value="#000000" title="Change Grid Color" onchange="updateGridColor()">
+      <label for="grid-visible" data-lang-key="showGridLines">Show Grid Lines:</label>
+      <input type="checkbox" id="grid-visible" title="Toggle Grid Lines" onchange="toggleGridVisibility()">
+    </div>
+    <div class="directions">
+      <span data-lang-key="wordDirections">Word Directions:</span>
+      <label><input type="checkbox" name="direction" value="tlbr" checked> <span data-lang-key="diagonalDown">Diagonal ↘</span></label>
+      <label><input type="checkbox" name="direction" value="bltr"> <span data-lang-key="diagonalUp">Diagonal ↗</span></label>
+      <label><input type="checkbox" name="direction" value="hrl" checked> <span data-lang-key="horizontal">Horizontal →</span></label>
+      <label><input type="checkbox" name="direction" value="vtb" checked> <span data-lang-key="verticalDown">Vertical ↓</span></label>
+      <label><input type="checkbox" name="direction" value="vbt"> <span data-lang-key="verticalUp">Vertical ↑</span></label>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="canvas" width="800" height="1131"></canvas>
+  </div>
+  
+  <div id="word-list"></div>
+
+  <script>
+    // Language translations
+    const languages = {
+      eng: {
+        headerTitle: "Kismet Playground - Word Puzzle Designer",
+        toggleControls: "Toggle Controls",
+        clearCanvas: "Clear Canvas",
+        undo: "Undo",
+        placeholderWords: "Enter words (comma separated)",
+        generatePuzzle: "Generate Puzzle",
+        addText: "Add Text",
+        textColor: "Text Color:",
+        font: "Font:",
+        fontSize: "Font Size:",
+        textAlignment: "Text Alignment:",
+        printPreview: "Print Preview",
+        exportPDF: "Export as PDF",
+        showAnswers: "Show Answers:",
+        letterCase: "Letter Case:",
+        lower: "Lower",
+        upper: "Upper",
+        gridColor: "Grid Color:",
+        showGridLines: "Show Grid Lines:",
+        wordDirections: "Word Directions:",
+        diagonalDown: "Diagonal ↘",
+        diagonalUp: "Diagonal ↗",
+        horizontal: "Horizontal →",
+        verticalDown: "Vertical ↓",
+        verticalUp: "Vertical ↑",
+        name: "Name:_____________________",
+        date: "Date:        /         /        ",
+        insertTitle: "Insert The Book Title Here",
+        wordList: "Word List:"
+      },
+      kor: {
+        headerTitle: "키스멧 플레이그라운드 - 단어 퍼즐 디자이너",
+        toggleControls: "컨트롤 토글",
+        clearCanvas: "캔버스 초기화",
+        undo: "실행 취소",
+        placeholderWords: "단어를 입력하세요 (예: apple, banana, etc...)",
+        generatePuzzle: "퍼즐 생성",
+        addText: "텍스트 추가",
+        textColor: "텍스트 색상:",
+        font: "글꼴:",
+        fontSize: "글꼴 크기:",
+        textAlignment: "텍스트 정렬:",
+        printPreview: "미리보기",
+        exportPDF: "PDF 내려내기",
+        showAnswers: "정답 표시:",
+        letterCase: "대/소문자:",
+        lower: "소문자",
+        upper: "대문자",
+        gridColor: "그리드 색상:",
+        showGridLines: "그리드 표시:",
+        wordDirections: "단어 방향:",
+        diagonalDown: "대각선 ↘",
+        diagonalUp: "대각선 ↗",
+        horizontal: "수평 →",
+        verticalDown: "수직 ↓",
+        verticalUp: "수직 ↑",
+        name: "이름:_____________________",
+        date: "날짜:        /         /        ",
+        insertTitle: "책 제목을 입력하세요",
+        wordList: "단어 목록:"
+      }
+    };
+
+    // Function to update language on page
+    function updateLanguage(lang) {
+      const texts = document.querySelectorAll("[data-lang-key]");
+      texts.forEach(el => {
+        const key = el.getAttribute("data-lang-key");
+        if (languages[lang] && languages[lang][key]) {
+          // Update text or placeholder if element is input
+          if (el.placeholder !== undefined) {
+            el.placeholder = languages[lang][key];
+          } else {
+            el.innerText = languages[lang][key];
+          }
+        }
+      });
+      // Also update the document title
+      document.title = languages[lang].headerTitle;
+      // Update the word input placeholder specifically
+      document.getElementById("word-input").placeholder = languages[lang].placeholderWords;
+    }
+
+    // Initialize language to English by default
+    updateLanguage("eng");
+
+    // Initialize Fabric canvas
+    const canvas = new fabric.Canvas('canvas', { selection: true });
+    let undoStack = [];
+    let letterCase = 'lower';
+    let answersVisible = false;
+    let currentAnswerMap = null;
+
+    // Snapping guide constants and variables
+    const SNAP_THRESHOLD = 10;
+    const HEADER_GUIDE_Y = 80;
+    const TITLE_GUIDE_Y = 150;
+    let verticalGuide = null;
+    let horizontalGuide = null;
+    let headerGuide = null;
+    let titleGuide = null;
+
+    // Use IText for editable header texts
+    function addHeaderTemplate() {
+      const nameText = new fabric.IText(languages.eng.name, {
+        left: canvas.width * 0.25,
+        top: 30,
+        fontSize: 20,
+        originX: 'center',
+        selectable: true,
+        editable: true,
+        isHeader: true
+      });
+      const dateText = new fabric.IText(languages.eng.date, {
+        left: canvas.width * 0.75,
+        top: 30,
+        fontSize: 20,
+        originX: 'center',
+        selectable: true,
+        editable: true,
+        isHeader: true
+      });
+      const titleText = new fabric.IText(languages.eng.insertTitle, {
+        left: canvas.width / 2,
+        top: 100,
+        fontSize: 25,
+        originX: 'center',
+        selectable: true,
+        editable: true,
+        isHeader: true
+      });
+      canvas.add(nameText, dateText, titleText);
+    }
+
+    addHeaderTemplate();
+
+    function setLetterCase(val) {
+      letterCase = val;
+    }
+
+    function togglePanel() {
+      const panel = document.getElementById('control-panel');
+      panel.classList.toggle('collapsed');
+    }
+
+    // Adds new editable text
+    function addText() {
+      const alignment = document.getElementById('text-align-selector').value;
+      let leftPos, originX;
+      if (alignment === 'center') {
+        leftPos = canvas.width / 2;
+        originX = 'center';
+      } else if (alignment === 'right') {
+        leftPos = canvas.width - 50;
+        originX = 'right';
+      } else {
+        leftPos = 50;
+        originX = 'left';
+      }
+      const text = new fabric.IText('Edit Me', { 
+        left: leftPos, 
+        top: 50, 
+        fontSize: parseInt(document.getElementById('font-size-input').value, 10),
+        textAlign: alignment,
+        originX: originX,
+        editable: true
+      });
+      canvas.add(text);
+    }
+
+    // Aligns the currently selected text
+    function alignSelectedText() {
+      let obj = canvas.getActiveObject();
+      if (obj && (obj.type === 'i-text' || obj.type === 'textbox' || obj.type === 'text')) {
+        const alignment = document.getElementById('text-align-selector').value;
+        if (alignment === 'center') {
+          obj.set({ left: canvas.width / 2, originX: 'center', textAlign: 'center' });
+        } else if (alignment === 'right') {
+          obj.set({ left: canvas.width - 50, originX: 'right', textAlign: 'right' });
+        } else {
+          obj.set({ left: 50, originX: 'left', textAlign: 'left' });
+        }
+        canvas.renderAll();
+      }
+    }
+
+    function changeColor() {
+      let obj = canvas.getActiveObject();
+      if (obj && obj.set) {
+        obj.set('fill', document.getElementById('color-picker').value);
+        canvas.renderAll();
+      }
+    }
+
+    function changeFont() {
+      let obj = canvas.getActiveObject();
+      if (obj && obj.set) {
+        obj.set('fontFamily', document.getElementById('font-selector').value);
+        canvas.renderAll();
+      }
+    }
+
+    function changeFontSize() {
+      let obj = canvas.getActiveObject();
+      if (obj && obj.set) {
+        obj.set('fontSize', parseInt(document.getElementById('font-size-input').value, 10));
+        canvas.renderAll();
+      }
+    }
+
+    function printPreview() {
+      const scale = 2;
+      let dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+      let previewWindow = window.open('', '_blank');
+      previewWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Preview</title>
+            <style>
+              body { margin:0; text-align: center; background: #ece9e6; }
+              img { max-width: 100%; }
+              button { padding: 10px 16px; margin-top: 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+              button:hover { background: #0056b3; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataURL}" alt="Print Preview" />
+            <br/><button onclick="window.print()">Print</button>
+          </body>
+        </html>
+      `);
+      previewWindow.document.close();
+    }
+
+    async function exportAsPDF() {
+      const scale = 2;
+      let dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+      const { jsPDF } = window.jspdf;
+      let pdf = new jsPDF('portrait', 'pt', 'a4');
+      let pdfWidth = pdf.internal.pageSize.getWidth();
+      let pdfHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(dataURL, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('word_puzzle.pdf');
+    }
+
+    function generatePuzzle() {
+      canvas.getObjects().forEach(function(obj) {
+        if (obj.isPuzzle || obj.isWordList) canvas.remove(obj);
+      });
+      answersVisible = false;
+      // Reset the "Show Answers" toggle
+      document.getElementById('answers-toggle').checked = false;
+      
+      let input = document.getElementById('word-input').value;
+      let words = input.split(',').map(w => w.trim()).filter(w => w.length > 0);
+      if (words.length === 0) return;
+      
+      let { grid, gridSize, isAnswerCell } = generateWordSearchPuzzleLogic(words);
+      currentAnswerMap = isAnswerCell;
+      drawPuzzle(grid, gridSize);
+      addWordListToCanvas(words);
+    }
+
+    function generateWordSearchPuzzleLogic(words) {
+      const gridSize = 15;
+      let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(''));
+      let isAnswerCell = Array.from({ length: gridSize }, () => Array(gridSize).fill(false));
+      
+      let directionCheckboxes = document.getElementsByName("direction");
+      let allowedDirections = [];
+      for (let checkbox of directionCheckboxes) {
+        if (checkbox.checked) {
+          switch(checkbox.value) {
+            case "tlbr": allowedDirections.push([1, 1]); break;
+            case "bltr": allowedDirections.push([1, -1]); break;
+            case "hrl": allowedDirections.push([1, 0]); break;
+            case "vtb": allowedDirections.push([0, 1]); break;
+            case "vbt": allowedDirections.push([0, -1]); break;
+          }
+        }
+      }
+      if (allowedDirections.length === 0) {
+        allowedDirections.push([1, 1]);
+      }
+
+      function placeWord(word) {
+        word = letterCase === 'upper' ? word.toUpperCase() : word.toLowerCase();
+        for (let attempts = 0; attempts < 100; attempts++) {
+          let [dx, dy] = allowedDirections[Math.floor(Math.random() * allowedDirections.length)];
+          let row = Math.floor(Math.random() * gridSize);
+          let col = Math.floor(Math.random() * gridSize);
+          let endRow = row + dy * (word.length - 1);
+          let endCol = col + dx * (word.length - 1);
+          if (endRow < 0 || endRow >= gridSize || endCol < 0 || endCol >= gridSize) continue;
+          
+          let conflict = false;
+          for (let i = 0; i < word.length; i++) {
+            let r = row + dy * i;
+            let c = col + dx * i;
+            if (grid[r][c] !== '' && grid[r][c] !== word[i]) {
+              conflict = true;
+              break;
+            }
+          }
+          if (conflict) continue;
+          
+          for (let i = 0; i < word.length; i++) {
+            let r = row + dy * i;
+            let c = col + dx * i;
+            grid[r][c] = word[i];
+            isAnswerCell[r][c] = true;
+          }
+          return true;
+        }
+        return false;
+      }
+
+      words.forEach(word => placeWord(word));
+      const alphabet = letterCase === 'upper' ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : 'abcdefghijklmnopqrstuvwxyz';
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          if (grid[i][j] === '') {
+            grid[i][j] = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+          }
+        }
+      }
+      return { grid, gridSize, isAnswerCell };
+    }
+
+    function drawPuzzle(grid, gridSize) {
+      const cellSize = 45;
+      const puzzleWidth = gridSize * cellSize;
+      const puzzleHeight = gridSize * cellSize;
+      const startX = (canvas.width - puzzleWidth) / 2;
+      const startY = (canvas.height - puzzleHeight) / 2;
+      let groupItems = [];
+
+      let borderRect = new fabric.Rect({
+        left: 0,
+        top: 0,
+        width: puzzleWidth,
+        height: puzzleHeight,
+        fill: 'transparent',
+        stroke: '#000',
+        strokeWidth: 2,
+        selectable: false
+      });
+      groupItems.push(borderRect);
+      
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          let rect = new fabric.Rect({ 
+            left: j * cellSize, 
+            top: i * cellSize, 
+            fill: '#fff', 
+            stroke: document.getElementById('grid-color-picker').value,
+            width: cellSize, 
+            height: cellSize,
+            selectable: true,
+            visible: document.getElementById('grid-visible').checked
+          });
+          rect.row = i;
+          rect.col = j;
+          let letter = new fabric.Text(grid[i][j], { 
+            left: j * cellSize + cellSize/2, 
+            top: i * cellSize + cellSize/2, 
+            fontSize: 20, 
+            originX: 'center', 
+            originY: 'center',
+            selectable: true
+          });
+          groupItems.push(rect, letter);
+        }
+      }
+      let puzzleGroup = new fabric.Group(groupItems, { left: startX, top: startY });
+      puzzleGroup.isPuzzle = true;
+      canvas.add(puzzleGroup);
+    }
+
+    function addWordListToCanvas(words) {
+      const cols = 4;
+      const cellWidth = 150;
+      const cellHeight = 30;
+      const fontSize = 16;
+
+      const puzzleGroup = canvas.getObjects().find(obj => obj.isPuzzle);
+      if (!puzzleGroup) return;
+      const puzzleBounds = puzzleGroup.getBoundingRect();
+      const startY = puzzleBounds.top + puzzleBounds.height + 50;
+      const startX = (canvas.width - (cols * cellWidth)) / 2;
+
+      let tableItems = [];
+      let currentRow = 0, currentCol = 0;
+      words.forEach((word) => {
+        const x = startX + (currentCol * cellWidth);
+        const y = startY + (currentRow * cellHeight);
+        tableItems.push(new fabric.Rect({
+          left: x,
+          top: y,
+          width: cellWidth,
+          height: cellHeight,
+          fill: '#fff',
+          stroke: document.getElementById('grid-color-picker').value,
+          selectable: false,
+          visible: document.getElementById('grid-visible').checked
+        }));
+        tableItems.push(new fabric.Text(word, {
+          left: x + cellWidth/2,
+          top: y + cellHeight/2,
+          fontSize: fontSize,
+          originX: 'center',
+          originY: 'center',
+          selectable: false
+        }));
+        currentCol = (currentCol + 1) % cols;
+        if (currentCol === 0) currentRow++;
+      });
+
+      const tableGroup = new fabric.Group(tableItems, { left: startX, top: startY, selectable: true });
+      tableGroup.isWordList = true;
+      const header = new fabric.Text(languages.eng.wordList, {
+        left: startX,
+        top: startY - 30,
+        fontSize: 18,
+        fontFamily: 'Arial',
+        selectable: true
+      });
+      canvas.add(header);
+      canvas.add(tableGroup);
+    }
+
+    function clearCanvas() {
+      canvas.clear();
+      canvas.setBackgroundColor('#fff', canvas.renderAll.bind(canvas));
+      addHeaderTemplate();
+    }
+
+    function undoAction() {
+      let activeObj = canvas.getActiveObject();
+      if (activeObj) {
+        undoStack.push(activeObj);
+        canvas.remove(activeObj);
+      } else {
+        let obj = undoStack.pop();
+        if (obj) canvas.add(obj);
+      }
+    }
+
+    function updateGridColor() {
+      const newColor = document.getElementById('grid-color-picker').value;
+      canvas.getObjects().forEach(obj => {
+        if (obj.isPuzzle || obj.isWordList) {
+          obj.getObjects().forEach(child => {
+            if (child.type === 'rect') {
+              child.set('stroke', newColor);
+            }
+          });
+          obj.addWithUpdate();
+        }
+      });
+      canvas.renderAll();
+    }
+
+    function toggleGridVisibility() {
+      const showGrid = document.getElementById('grid-visible').checked;
+      canvas.getObjects().forEach(obj => {
+        if (obj.isPuzzle || obj.isWordList) {
+          obj.getObjects().forEach(child => {
+            if (child.type === 'rect') {
+              if (answersVisible && currentAnswerMap && currentAnswerMap[child.row][child.col]) {
+                child.set('visible', true);
+              } else {
+                child.set('visible', showGrid);
+              }
+            }
+          });
+          obj.addWithUpdate();
+        }
+      });
+      canvas.renderAll();
+    }
+
+    function toggleAnswers() {
+      answersVisible = !answersVisible;
+      let gridCheckbox = document.getElementById('grid-visible').checked;
+      let puzzleGroup = canvas.getObjects().find(obj => obj.isPuzzle);
+      if (!puzzleGroup) return;
+      puzzleGroup.getObjects().forEach(obj => {
+        if (obj.type === 'rect' && typeof obj.row === 'number' && typeof obj.col === 'number') {
+          if (answersVisible && currentAnswerMap && currentAnswerMap[obj.row][obj.col]) {
+            obj.set('fill', '#ffffaa');
+            obj.set('visible', true);
+          } else {
+            obj.set('fill', '#fff');
+            obj.set('visible', gridCheckbox);
+          }
+        }
+      });
+      puzzleGroup.addWithUpdate();
+      canvas.renderAll();
+    }
+
+    canvas.on('object:moving', function(e) {
+      const obj = e.target;
+      if (obj && (obj.type === 'i-text' || obj.type === 'textbox' || obj.type === 'text')) {
+        const center = obj.getCenterPoint();
+        const canvasCenterX = canvas.width / 2;
+        const canvasCenterY = canvas.height / 2;
+        // Center vertical guide
+        if (Math.abs(center.x - canvasCenterX) < SNAP_THRESHOLD) {
+          if (!verticalGuide) {
+            verticalGuide = new fabric.Line([canvasCenterX, 0, canvasCenterX, canvas.height], {
+              stroke: 'pink',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false
+            });
+            canvas.add(verticalGuide);
+            verticalGuide.sendToBack();
+          }
+        } else if (verticalGuide) {
+          canvas.remove(verticalGuide);
+          verticalGuide = null;
+        }
+        // Center horizontal guide
+        if (Math.abs(center.y - canvasCenterY) < SNAP_THRESHOLD) {
+          if (!horizontalGuide) {
+            horizontalGuide = new fabric.Line([0, canvasCenterY, canvas.width, canvasCenterY], {
+              stroke: 'pink',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false
+            });
+            canvas.add(horizontalGuide);
+            horizontalGuide.sendToBack();
+          }
+        } else if (horizontalGuide) {
+          canvas.remove(horizontalGuide);
+          horizontalGuide = null;
+        }
+        // Header guide snapping
+        if (Math.abs(center.y - HEADER_GUIDE_Y) < SNAP_THRESHOLD) {
+          if (!headerGuide) {
+            headerGuide = new fabric.Line([0, HEADER_GUIDE_Y, canvas.width, HEADER_GUIDE_Y], {
+              stroke: 'pink',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false
+            });
+            canvas.add(headerGuide);
+            headerGuide.sendToBack();
+          }
+        } else if (headerGuide) {
+          canvas.remove(headerGuide);
+          headerGuide = null;
+        }
+        // Title guide snapping
+        if (Math.abs(center.y - TITLE_GUIDE_Y) < SNAP_THRESHOLD) {
+          if (!titleGuide) {
+            titleGuide = new fabric.Line([0, TITLE_GUIDE_Y, canvas.width, TITLE_GUIDE_Y], {
+              stroke: 'pink',
+              strokeWidth: 2,
+              selectable: false,
+              evented: false
+            });
+            canvas.add(titleGuide);
+            titleGuide.sendToBack();
+          }
+        } else if (titleGuide) {
+          canvas.remove(titleGuide);
+          titleGuide = null;
+        }
+      }
+    });
+
+    canvas.on('mouse:up', function() {
+      if (verticalGuide) { canvas.remove(verticalGuide); verticalGuide = null; }
+      if (horizontalGuide) { canvas.remove(horizontalGuide); horizontalGuide = null; }
+      if (headerGuide) { canvas.remove(headerGuide); headerGuide = null; }
+      if (titleGuide) { canvas.remove(titleGuide); titleGuide = null; }
+      canvas.renderAll();
+    });
+
+    window.addEventListener('keydown', function(e) {
+      const activeObj = canvas.getActiveObject();
+      if ((e.key === 'Delete' || e.key === 'Backspace') && activeObj) {
+        if ((activeObj.type === 'i-text' || activeObj.type === 'textbox' || activeObj.type === 'text') && activeObj.isEditing) {
+          return;
+        }
+        undoStack.push(activeObj);
+        canvas.remove(activeObj);
+      }
+      if (e.ctrlKey && e.key === 'z') {
+        let obj = undoStack.pop();
+        if (obj) canvas.add(obj);
+      }
+    });
+  </script>
+</body>
+</html>
