@@ -275,7 +275,7 @@
       position: fixed;
       left: 10px;
       bottom: 10px;
-      width: 38px;  /* 25% smaller than original 50px */
+      width: 38px;
       height: 38px;
       background: #007bff;
       color: white;
@@ -523,8 +523,8 @@
     let letterCase = 'lower';
     let answersVisible = false;
     let currentAnswerMap = null;
-    let mobileEditingEnabled = false; // Unused now – we use the collapse button.
-    let canvasCollapsed = false; // tracks whether the canvas container is collapsed
+    let mobileEditingEnabled = false; // controls editing toggle via double-tap
+    let canvasCollapsed = false; // tracks collapse state
 
     // Original design dimensions
     const originalCanvasWidth = 800;
@@ -700,6 +700,11 @@
       currentAnswerMap = isAnswerCell;
       drawPuzzle(grid, gridSize);
       addWordListToCanvas(words);
+      
+      // On mobile, scroll the canvas container into view after generating the puzzle.
+      if (isMobile()) {
+        document.getElementById('canvas-container').scrollIntoView({ behavior: "smooth" });
+      }
     }
 
     function generateWordSearchPuzzleLogic(words) {
@@ -1090,8 +1095,45 @@
       // Disable pointer events on Fabric’s upper canvas so touches pass through.
       canvas.upperCanvasEl.style.pointerEvents = 'none';
     }
-
-    // Collapse/Expand Button Logic for Mobile
+    
+    // Toggle mobile editing mode on double-tap
+    function toggleMobileEditing() {
+      mobileEditingEnabled = !mobileEditingEnabled;
+      if (mobileEditingEnabled) {
+        canvas.selection = true;
+        canvas.forEachObject(obj => { obj.selectable = true; });
+        canvas.hoverCursor = 'move';
+        // When editing is enabled, prevent scrolling on the canvas container.
+        document.getElementById('canvas-container').style.touchAction = 'none';
+        canvas.upperCanvasEl.style.pointerEvents = 'auto';
+        showPopup("Canva Designer Unlocked");
+      } else {
+        canvas.selection = false;
+        canvas.forEachObject(obj => { obj.selectable = false; });
+        canvas.hoverCursor = 'default';
+        document.getElementById('canvas-container').style.touchAction = 'pan-y';
+        canvas.upperCanvasEl.style.pointerEvents = 'none';
+        showPopup("Canva Designer Locked");
+      }
+      canvas.renderAll();
+    }
+    
+    // Double-tap detection on the canvas container to toggle editing mode
+    if (isMobile()) {
+      let lastTap = 0;
+      const canvasContainer = document.getElementById('canvas-container');
+      canvasContainer.addEventListener('touchend', function(e) {
+        let currentTime = new Date().getTime();
+        let tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          toggleMobileEditing();
+          e.preventDefault();
+        }
+        lastTap = currentTime;
+      });
+    }
+    
+    // Collapse/Expand Button Logic for Mobile (for scrolling)
     const collapseButton = document.getElementById('collapse-button');
     collapseButton.addEventListener('click', function() {
       const container = document.getElementById('canvas-container');
@@ -1107,12 +1149,9 @@
         container.style.opacity = "1";
         collapseButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
         canvasCollapsed = false;
-        // Scroll to the container smoothly
         container.scrollIntoView({ behavior: "smooth" });
       }
     });
-    
-    // (Legacy double-tap toggle code removed to avoid interference with the collapse/expand button.)
   </script>
 </body>
 </html>
