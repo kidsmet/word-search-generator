@@ -6,6 +6,8 @@
   <title data-lang-key="headerTitle">Kismet Playground - Word Puzzle Designer</title>
   <!-- Google Fonts for modern typography -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for icons (integrity removed) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <!-- Fabric.js for canvas manipulation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
   <!-- jsPDF for exporting PDF -->
@@ -16,7 +18,7 @@
     body {
       margin: 0;
       font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #ece9e6, #ffffff);
+      background: linear-gradient(135deg, #f0f4f8, #ffffff);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -27,21 +29,21 @@
     header {
       width: 100%;
       max-width: 1200px;
-      padding: 10px 20px;
+      padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      background: #f5f5f5;
+      background: #007bff;
+      color: white;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       flex-wrap: wrap;
+      transition: background 0.3s ease;
     }
     header h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
-      color: #007bff;
     }
     header select, header button {
       margin-top: 10px;
@@ -53,6 +55,7 @@
       border: 1px solid #ccc;
       border-radius: 4px;
       background: #fff;
+      color: #333;
     }
     /* Control Panel */
     #control-panel {
@@ -64,7 +67,7 @@
       max-width: 1200px;
       margin-bottom: 20px;
       transition: max-height 0.5s ease, padding 0.5s ease;
-      overflow-y: auto; /* enable vertical scrolling if needed */
+      overflow-y: auto;
       max-height: 600px;
     }
     #control-panel.collapsed {
@@ -119,6 +122,20 @@
     }
     .controls .secondary-btn:hover {
       transform: scale(1.03);
+    }
+    /* New Quality Control (for Export) */
+    .quality-control {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .quality-control select {
+      padding: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
     }
     /* Text Alignment Control */
     .text-align-control {
@@ -191,14 +208,93 @@
       background: #fff;
       border: 1px solid #ddd;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-top: 10px;
       margin-bottom: 20px;
       border-radius: 8px;
-      overflow: auto;
+      overflow: hidden;
       width: 100%;
       max-width: 800px;
+      position: relative;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+      /* In locked mode, vertical scrolling is allowed */
+      touch-action: pan-y;
+      max-height: 1200px;
     }
-    #word-list { display: none; }
-
+    /* Toolbar positioned above the canvas */
+    #canvas-toolbar {
+      position: relative;
+      width: fit-content;
+      margin: 0 auto 10px auto;
+      background: #007bff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease-in-out;
+    }
+    #canvas-toolbar:hover { transform: scale(1.02); }
+    /* Style for the toolbar buttons */
+    #canvas-toolbar button {
+      background: white;
+      border: none;
+      color: #007bff;
+      font-size: 16px;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    #canvas-toolbar button:hover {
+      background: #0056b3;
+      color: white;
+      transform: scale(1.05);
+    }
+    /* Mobile Popup for Design Lock/Unlock */
+    #mobile-popup {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(0, 123, 255, 0.9);
+      color: white;
+      padding: 15px 25px;
+      font-size: 20px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    /* Collapse/Expand Button for Mobile */
+    #collapse-button {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      width: 38px;  /* 25% smaller than original 50px */
+      height: 38px;
+      background: #007bff;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      z-index: 1001;
+    }
+    #collapse-button:hover {
+      transform: scale(1.1);
+    }
+    /* Hide collapse button on non-mobile devices */
+    @media (min-width: 769px) {
+      #collapse-button { display: none; }
+    }
     /* Media Queries for Mobile/Tablet */
     @media (max-width: 768px) {
       header {
@@ -213,7 +309,7 @@
       }
       #control-panel {
         padding: 15px;
-        max-height: 300px; /* reduced max height for mobile */
+        max-height: 300px;
       }
       .controls {
         flex-direction: column;
@@ -228,6 +324,17 @@
       }
       .text-align-control {
         justify-content: center;
+      }
+      .quality-control select {
+        width: 100%;
+      }
+      #canvas-toolbar {
+        top: 5px;
+        padding: 6px 10px;
+      }
+      #canvas-toolbar button {
+        font-size: 14px;
+        padding: 4px 8px;
       }
     }
   </style>
@@ -246,7 +353,7 @@
       <button class="secondary-btn" onclick="undoAction()" data-lang-key="undo">Undo</button>
     </div>
   </header>
-
+  <!-- Control panel for editing -->
   <div id="control-panel">
     <div class="controls">
       <input type="text" id="word-input" placeholder="Enter words (comma separated)" data-lang-placeholder="placeholderWords" title="Enter words separated by commas" />
@@ -273,6 +380,16 @@
       </div>
       <button onclick="printPreview()" data-lang-key="printPreview">Print Preview</button>
       <button onclick="exportAsPDF()" data-lang-key="exportPDF">Export as PDF</button>
+      <!-- New Quality Control for Export -->
+      <div class="quality-control">
+        <label for="quality-select">Quality:</label>
+        <select id="quality-select">
+          <option value="2">Low</option>
+          <option value="3" selected>Medium</option>
+          <option value="4">High</option>
+          <option value="5">Very High</option>
+        </select>
+      </div>
       <!-- Toggle Switch for Answers -->
       <label for="answers-toggle" style="font-size:16px;" data-lang-key="showAnswers">Show Answers:</label>
       <label class="toggle-switch">
@@ -298,12 +415,22 @@
       <label><input type="checkbox" name="direction" value="vbt"> <span data-lang-key="verticalUp">Vertical ↑</span></label>
     </div>
   </div>
+  
+  <div id="canvas-toolbar">
+    <button onclick="undoAction()" title="Undo"><i class="fa-solid fa-rotate-left"></i> Undo</button>
+    <button onclick="redoAction()" title="Redo"><i class="fa-solid fa-rotate-right"></i> Redo</button>
+    <button onclick="deleteSelected()" title="Delete"><i class="fa-solid fa-trash"></i> Delete</button>
+  </div>
 
   <div id="canvas-container">
     <canvas id="canvas" width="800" height="1131"></canvas>
   </div>
   
   <div id="word-list"></div>
+  <!-- Mobile popup element -->
+  <div id="mobile-popup"></div>
+  <!-- Collapse/Expand Button for Mobile -->
+  <div id="collapse-button"><i class="fa fa-chevron-up"></i></div>
 
   <script>
     // Language translations
@@ -372,37 +499,36 @@
       }
     };
 
-    // Function to update language on page
+    // Update language texts
     function updateLanguage(lang) {
       const texts = document.querySelectorAll("[data-lang-key]");
       texts.forEach(el => {
         const key = el.getAttribute("data-lang-key");
         if (languages[lang] && languages[lang][key]) {
-          // Update text or placeholder if element is input
-          if (el.placeholder !== undefined) {
+          if (el.tagName.toLowerCase() === 'input' && el.hasAttribute('placeholder')) {
             el.placeholder = languages[lang][key];
           } else {
             el.innerText = languages[lang][key];
           }
         }
       });
-      // Also update the document title
       document.title = languages[lang].headerTitle;
-      // Update the word input placeholder specifically
       document.getElementById("word-input").placeholder = languages[lang].placeholderWords;
     }
-
-    // Initialize language to English by default
     updateLanguage("eng");
 
-    // Initialize Fabric canvas
     const canvas = new fabric.Canvas('canvas', { selection: true });
     let undoStack = [];
+    let redoStack = [];
     let letterCase = 'lower';
     let answersVisible = false;
     let currentAnswerMap = null;
+    let mobileEditingEnabled = false; // Unused now – we use the collapse button.
+    let canvasCollapsed = false; // tracks whether the canvas container is collapsed
 
-    // Snapping guide constants and variables
+    // Original design dimensions
+    const originalCanvasWidth = 800;
+    const originalCanvasHeight = 1131;
     const SNAP_THRESHOLD = 10;
     const HEADER_GUIDE_Y = 80;
     const TITLE_GUIDE_Y = 150;
@@ -411,10 +537,10 @@
     let headerGuide = null;
     let titleGuide = null;
 
-    // Use IText for editable header texts
+    // Add header texts using design coordinates
     function addHeaderTemplate() {
       const nameText = new fabric.IText(languages.eng.name, {
-        left: canvas.width * 0.25,
+        left: originalCanvasWidth * 0.25,
         top: 30,
         fontSize: 20,
         originX: 'center',
@@ -423,7 +549,7 @@
         isHeader: true
       });
       const dateText = new fabric.IText(languages.eng.date, {
-        left: canvas.width * 0.75,
+        left: originalCanvasWidth * 0.75,
         top: 30,
         fontSize: 20,
         originX: 'center',
@@ -432,7 +558,7 @@
         isHeader: true
       });
       const titleText = new fabric.IText(languages.eng.insertTitle, {
-        left: canvas.width / 2,
+        left: originalCanvasWidth / 2,
         top: 100,
         fontSize: 25,
         originX: 'center',
@@ -442,7 +568,6 @@
       });
       canvas.add(nameText, dateText, titleText);
     }
-
     addHeaderTemplate();
 
     function setLetterCase(val) {
@@ -454,15 +579,15 @@
       panel.classList.toggle('collapsed');
     }
 
-    // Adds new editable text
+    // Add text using design coordinates
     function addText() {
       const alignment = document.getElementById('text-align-selector').value;
       let leftPos, originX;
       if (alignment === 'center') {
-        leftPos = canvas.width / 2;
+        leftPos = originalCanvasWidth / 2;
         originX = 'center';
       } else if (alignment === 'right') {
-        leftPos = canvas.width - 50;
+        leftPos = originalCanvasWidth - 50;
         originX = 'right';
       } else {
         leftPos = 50;
@@ -479,15 +604,15 @@
       canvas.add(text);
     }
 
-    // Aligns the currently selected text
+    // Align selected text
     function alignSelectedText() {
       let obj = canvas.getActiveObject();
       if (obj && (obj.type === 'i-text' || obj.type === 'textbox' || obj.type === 'text')) {
         const alignment = document.getElementById('text-align-selector').value;
         if (alignment === 'center') {
-          obj.set({ left: canvas.width / 2, originX: 'center', textAlign: 'center' });
+          obj.set({ left: originalCanvasWidth / 2, originX: 'center', textAlign: 'center' });
         } else if (alignment === 'right') {
-          obj.set({ left: canvas.width - 50, originX: 'right', textAlign: 'right' });
+          obj.set({ left: originalCanvasWidth - 50, originX: 'right', textAlign: 'right' });
         } else {
           obj.set({ left: 50, originX: 'left', textAlign: 'left' });
         }
@@ -519,16 +644,22 @@
       }
     }
 
+    // Get export multiplier from quality control
+    function getExportMultiplier() {
+      const qualitySelect = document.getElementById('quality-select');
+      return parseFloat(qualitySelect.value);
+    }
+
     function printPreview() {
-      const scale = 2;
-      let dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+      const exportMultiplier = getExportMultiplier();
+      let dataURL = canvas.toDataURL({ format: 'png', multiplier: exportMultiplier });
       let previewWindow = window.open('', '_blank');
       previewWindow.document.write(`
         <html>
           <head>
             <title>Print Preview</title>
             <style>
-              body { margin:0; text-align: center; background: #ece9e6; }
+              body { margin:0; text-align: center; background: #f0f4f8; }
               img { max-width: 100%; }
               button { padding: 10px 16px; margin-top: 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
               button:hover { background: #0056b3; }
@@ -544,8 +675,8 @@
     }
 
     async function exportAsPDF() {
-      const scale = 2;
-      let dataURL = canvas.toDataURL({ format: 'png', multiplier: scale });
+      const exportMultiplier = getExportMultiplier();
+      let dataURL = canvas.toDataURL({ format: 'png', multiplier: exportMultiplier });
       const { jsPDF } = window.jspdf;
       let pdf = new jsPDF('portrait', 'pt', 'a4');
       let pdfWidth = pdf.internal.pageSize.getWidth();
@@ -559,7 +690,6 @@
         if (obj.isPuzzle || obj.isWordList) canvas.remove(obj);
       });
       answersVisible = false;
-      // Reset the "Show Answers" toggle
       document.getElementById('answers-toggle').checked = false;
       
       let input = document.getElementById('word-input').value;
@@ -638,12 +768,13 @@
       return { grid, gridSize, isAnswerCell };
     }
 
+    // Draw the puzzle grid
     function drawPuzzle(grid, gridSize) {
       const cellSize = 45;
       const puzzleWidth = gridSize * cellSize;
       const puzzleHeight = gridSize * cellSize;
-      const startX = (canvas.width - puzzleWidth) / 2;
-      const startY = (canvas.height - puzzleHeight) / 2;
+      const startX = (originalCanvasWidth - puzzleWidth) / 2;
+      const startY = (originalCanvasHeight - puzzleHeight) / 2;
       let groupItems = [];
 
       let borderRect = new fabric.Rect({
@@ -673,8 +804,8 @@
           rect.row = i;
           rect.col = j;
           let letter = new fabric.Text(grid[i][j], { 
-            left: j * cellSize + cellSize/2, 
-            top: i * cellSize + cellSize/2, 
+            left: j * cellSize + cellSize / 2, 
+            top: i * cellSize + cellSize / 2, 
             fontSize: 20, 
             originX: 'center', 
             originY: 'center',
@@ -688,23 +819,25 @@
       canvas.add(puzzleGroup);
     }
 
+    // Add word list to canvas
     function addWordListToCanvas(words) {
       const cols = 4;
       const cellWidth = 150;
       const cellHeight = 30;
       const fontSize = 16;
 
-      const puzzleGroup = canvas.getObjects().find(obj => obj.isPuzzle);
-      if (!puzzleGroup) return;
-      const puzzleBounds = puzzleGroup.getBoundingRect();
-      const startY = puzzleBounds.top + puzzleBounds.height + 50;
-      const startX = (canvas.width - (cols * cellWidth)) / 2;
+      const gridSize = 15;
+      const puzzleHeightDesign = gridSize * 45;
+      const puzzleTopDesign = (originalCanvasHeight - puzzleHeightDesign) / 2;
+      const headerY = puzzleTopDesign + puzzleHeightDesign + 40;
+      const tableStartY = headerY + 20;
+      const startX = (originalCanvasWidth - (cols * cellWidth)) / 2;
 
       let tableItems = [];
       let currentRow = 0, currentCol = 0;
       words.forEach((word) => {
         const x = startX + (currentCol * cellWidth);
-        const y = startY + (currentRow * cellHeight);
+        const y = tableStartY + (currentRow * cellHeight);
         tableItems.push(new fabric.Rect({
           left: x,
           top: y,
@@ -716,8 +849,8 @@
           visible: document.getElementById('grid-visible').checked
         }));
         tableItems.push(new fabric.Text(word, {
-          left: x + cellWidth/2,
-          top: y + cellHeight/2,
+          left: x + cellWidth / 2,
+          top: y + cellHeight / 2,
           fontSize: fontSize,
           originX: 'center',
           originY: 'center',
@@ -727,16 +860,16 @@
         if (currentCol === 0) currentRow++;
       });
 
-      const tableGroup = new fabric.Group(tableItems, { left: startX, top: startY, selectable: true });
+      const tableGroup = new fabric.Group(tableItems, { left: startX, top: tableStartY, selectable: true });
       tableGroup.isWordList = true;
-      const header = new fabric.Text(languages.eng.wordList, {
+      const headerText = new fabric.Text(languages.eng.wordList, {
         left: startX,
-        top: startY - 30,
+        top: headerY - 30,
         fontSize: 18,
         fontFamily: 'Arial',
         selectable: true
       });
-      canvas.add(header);
+      canvas.add(headerText);
       canvas.add(tableGroup);
     }
 
@@ -750,10 +883,30 @@
       let activeObj = canvas.getActiveObject();
       if (activeObj) {
         undoStack.push(activeObj);
+        redoStack.push(activeObj);
         canvas.remove(activeObj);
       } else {
         let obj = undoStack.pop();
         if (obj) canvas.add(obj);
+      }
+    }
+
+    // Redo action
+    function redoAction() {
+      let obj = redoStack.pop();
+      if (obj) {
+        canvas.add(obj);
+        canvas.renderAll();
+      }
+    }
+
+    // Delete selected object
+    function deleteSelected() {
+      let activeObj = canvas.getActiveObject();
+      if (activeObj) {
+        undoStack.push(activeObj);
+        redoStack.push(activeObj);
+        canvas.remove(activeObj);
       }
     }
 
@@ -811,13 +964,19 @@
       canvas.renderAll();
     }
 
+    // Activate canvas editing on double-click for desktops
+    function activateCanvasEditing() {
+      canvas.selection = true;
+      canvas.hoverCursor = "move";
+    }
+    document.getElementById('canvas').addEventListener('dblclick', activateCanvasEditing);
+
     canvas.on('object:moving', function(e) {
       const obj = e.target;
       if (obj && (obj.type === 'i-text' || obj.type === 'textbox' || obj.type === 'text')) {
         const center = obj.getCenterPoint();
         const canvasCenterX = canvas.width / 2;
         const canvasCenterY = canvas.height / 2;
-        // Center vertical guide
         if (Math.abs(center.x - canvasCenterX) < SNAP_THRESHOLD) {
           if (!verticalGuide) {
             verticalGuide = new fabric.Line([canvasCenterX, 0, canvasCenterX, canvas.height], {
@@ -833,7 +992,6 @@
           canvas.remove(verticalGuide);
           verticalGuide = null;
         }
-        // Center horizontal guide
         if (Math.abs(center.y - canvasCenterY) < SNAP_THRESHOLD) {
           if (!horizontalGuide) {
             horizontalGuide = new fabric.Line([0, canvasCenterY, canvas.width, canvasCenterY], {
@@ -849,7 +1007,6 @@
           canvas.remove(horizontalGuide);
           horizontalGuide = null;
         }
-        // Header guide snapping
         if (Math.abs(center.y - HEADER_GUIDE_Y) < SNAP_THRESHOLD) {
           if (!headerGuide) {
             headerGuide = new fabric.Line([0, HEADER_GUIDE_Y, canvas.width, HEADER_GUIDE_Y], {
@@ -865,7 +1022,6 @@
           canvas.remove(headerGuide);
           headerGuide = null;
         }
-        // Title guide snapping
         if (Math.abs(center.y - TITLE_GUIDE_Y) < SNAP_THRESHOLD) {
           if (!titleGuide) {
             titleGuide = new fabric.Line([0, TITLE_GUIDE_Y, canvas.width, TITLE_GUIDE_Y], {
@@ -899,6 +1055,7 @@
           return;
         }
         undoStack.push(activeObj);
+        redoStack.push(activeObj);
         canvas.remove(activeObj);
       }
       if (e.ctrlKey && e.key === 'z') {
@@ -907,24 +1064,55 @@
       }
     });
 
-    // Responsive Canvas resizing (scaling canvas and its objects)
-    const originalCanvasWidth = 800;
-    const originalCanvasHeight = 1131;
+    // Responsive Canvas resizing
     function resizeCanvas() {
       const container = document.getElementById('canvas-container');
       const containerWidth = container.offsetWidth;
-      // Calculate scale factor relative to original canvas width
       let scale = containerWidth / originalCanvasWidth;
       canvas.setWidth(originalCanvasWidth * scale);
       canvas.setHeight(originalCanvasHeight * scale);
-      // Use Fabric's zoom to scale objects uniformly
       canvas.setZoom(scale);
       canvas.calcOffset();
       canvas.renderAll();
     }
     window.addEventListener('resize', resizeCanvas);
-    // Initial resize
     resizeCanvas();
+
+    // For mobile devices, start in locked mode: editing is disabled and scrolling is allowed.
+    function isMobile() {
+      return /Mobi|Android/i.test(navigator.userAgent);
+    }
+    if (isMobile()) {
+      canvas.selection = false;
+      canvas.forEachObject(obj => { obj.selectable = false; });
+      canvas.hoverCursor = 'default';
+      document.getElementById('canvas-container').style.touchAction = 'pan-y';
+      // Disable pointer events on Fabric’s upper canvas so touches pass through.
+      canvas.upperCanvasEl.style.pointerEvents = 'none';
+    }
+
+    // Collapse/Expand Button Logic for Mobile
+    const collapseButton = document.getElementById('collapse-button');
+    collapseButton.addEventListener('click', function() {
+      const container = document.getElementById('canvas-container');
+      if (!canvasCollapsed) {
+        // Collapse the container
+        container.style.maxHeight = "0px";
+        container.style.opacity = "0";
+        collapseButton.innerHTML = '<i class="fa fa-chevron-down"></i>';
+        canvasCollapsed = true;
+      } else {
+        // Expand the container and automatically scroll into view
+        container.style.maxHeight = "1200px";
+        container.style.opacity = "1";
+        collapseButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
+        canvasCollapsed = false;
+        // Scroll to the container smoothly
+        container.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+    
+    // (Legacy double-tap toggle code removed to avoid interference with the collapse/expand button.)
   </script>
 </body>
 </html>
