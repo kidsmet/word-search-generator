@@ -517,6 +517,18 @@
     }
     updateLanguage("eng");
 
+    // Define showPopup so it can be used when toggling editing mode.
+    function showPopup(message) {
+      const popup = document.getElementById('mobile-popup');
+      popup.textContent = message;
+      popup.style.opacity = '1';
+      popup.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => {
+        popup.style.opacity = '0';
+        popup.style.transform = 'translateX(-50%) translateY(-20px)';
+      }, 2000);
+    }
+
     const canvas = new fabric.Canvas('canvas', { selection: true });
     let undoStack = [];
     let redoStack = [];
